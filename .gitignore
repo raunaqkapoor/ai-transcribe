@@ -136,6 +136,7 @@ dist
 .pnp.*
 
 inputFiles
+processingFiles
 outputFiles
 oldOutputs
 
