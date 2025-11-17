@@ -31,7 +31,7 @@ const generateSummary = async (params: { googleMeetTranscript: string; accurateT
 
 You are provided with two transcripts from the same meeting:
 
-- **Transcript 1 (Google Meet Live Captioning)**: Contains speaker labels but may have inaccuracies. The speaker labels are always correct, but the content may not be. The person marked as You is Pratik.
+- **Transcript 1 (Google Meet Live Captioning)**: Contains speaker labels but may have inaccuracies. The speaker labels are always correct, but the content may not be. The person marked as You is Raunaq.
 - **Transcript 2 (Accurate Transcript)**: Contains accurate text but lacks speaker labels.
 
 Please note that certain technical terms, tools, and participant names may have been incorrectly transcribed. Pay special attention to the following correct terms and names: **${toolsAndTech}**.

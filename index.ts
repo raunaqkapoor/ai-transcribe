@@ -13,13 +13,20 @@ const main = async (): Promise<void> => {
     const textFilepath = `${INPUT_DIRECTORY}/${commonFilename}.txt`
     const compressedAudioFilepath = `${INPUT_DIRECTORY}/${commonFilename}-compressed.webm`
 
-    const clientsOrganizations = 'Clients: '
-    const people = 'People: '
-    const pmsHousekeepingMessagingSystems = 'PMS/Housekeeping/Messaging Systems: '
-    const technologiesFrameworks = 'Technologies/Frameworks: '
-    const platformsServices = 'Platforms/Services: '
-    const microservices = 'Microservices: '
-    const conceptsTerms = 'Concepts/Terms: '
+    const clientsOrganizations = 'Clients: Staycity, Amano, Dalata, Ostello Bello, McDreams, Bicycle Street, Cranleigh'
+
+    const people = 'People: Jason, Laura, Lina, Gaurav, Monasha, Raunaq, Selwyn, Mike, Ram, Bhaskar, Abhishek'
+
+    const pmsHousekeepingMessagingSystems = 'PMS/Housekeeping/Messaging Systems: Optii, Flexkeeping, Mews (frequently mistaken as muse), Cloudbeds, LikeMagic, Apaleo, Freshwork, Freshdesk, Freshchat'
+
+    const technologiesFrameworks = 'Technologies/Frameworks: LiteLLM, Langfuse, JOI validation, NextJS, Claude, Anthropic, Gemini'
+
+    const platformsServices = 'Platforms/Services: Hookdeck, LiveKit, CTA, Crowdin, Twilio, BetterAuth, D3x, D3x.ai, Platform'
+
+    const microservices = 'Microservices: api-services, ai-services, chat-services, voice-services'
+
+    const conceptsTerms = 'Concepts/Terms: GDPR, CRUD, HLD, tenant, subtenant, evals (frequently mistaken as email), BR - business rules, HCR (Human connect request), CTH (Connect to Human)'
+
 
     const domainSpecificTerms = [
         clientsOrganizations,
