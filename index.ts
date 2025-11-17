@@ -1,17 +1,19 @@
 import fs from 'fs'
-import { getLatestAudioFile, compressAudioFile, readFileContent, writeFileContent, ensureDirectoryExists } from './modules/fileUtils.ts'
-import { INPUT_DIRECTORY, OUTPUT_DIRECTORY } from './modules/constants.ts'
+import { getLatestAudioFile, compressAudioFile, readFileContent, writeFileContent, ensureDirectoryExists, sanitizeFilename } from './modules/fileUtils.ts'
+import { INPUT_DIRECTORY, PROCESSING_DIRECTORY, OUTPUT_DIRECTORY } from './modules/constants.ts'
 import { transcribeAudio, generateSummary } from './modules/openaiUtils.ts'
 
 const main = async (): Promise<void> => {
     ensureDirectoryExists(INPUT_DIRECTORY)
+    ensureDirectoryExists(PROCESSING_DIRECTORY)
     ensureDirectoryExists(OUTPUT_DIRECTORY)
 
-    const commonFilename = getLatestAudioFile(INPUT_DIRECTORY)
+    const originalFilename = getLatestAudioFile(INPUT_DIRECTORY)
+    const sanitizedFilename = sanitizeFilename(originalFilename)
 
-    const audioFilepath = `${INPUT_DIRECTORY}/${commonFilename}.webm`
-    const textFilepath = `${INPUT_DIRECTORY}/${commonFilename}.txt`
-    const compressedAudioFilepath = `${INPUT_DIRECTORY}/${commonFilename}-compressed.webm`
+    const audioFilepath = `${INPUT_DIRECTORY}/${originalFilename}.webm`
+    const textFilepath = `${INPUT_DIRECTORY}/${originalFilename}.txt`
+    const compressedAudioFilepath = `${PROCESSING_DIRECTORY}/${sanitizedFilename}-compressed.webm`
 
     const clientsOrganizations = 'Clients: Staycity, Amano, Dalata, Ostello Bello, McDreams, Bicycle Street, Cranleigh'
 
@@ -55,11 +57,11 @@ const main = async (): Promise<void> => {
     }
 
     const transcriptionText = await transcribeAudio({ filePath: processedAudioFilepath, prompt })
-    writeFileContent({ filePath: `${OUTPUT_DIRECTORY}/${commonFilename}-transcription.txt`, content: transcriptionText })
+    writeFileContent({ filePath: `${PROCESSING_DIRECTORY}/${sanitizedFilename}-transcription.txt`, content: transcriptionText })
 
     const googleMeetTranscript = readFileContent(textFilepath)
     const summary = await generateSummary({ googleMeetTranscript, accurateTranscript: transcriptionText, toolsAndTech: domainSpecificTerms })
-    writeFileContent({ filePath: `${OUTPUT_DIRECTORY}/${commonFilename}-summary.md`, content: summary })
+    writeFileContent({ filePath: `${OUTPUT_DIRECTORY}/${sanitizedFilename}-summary.md`, content: summary })
 }
 
 main().catch(error => console.error(error))

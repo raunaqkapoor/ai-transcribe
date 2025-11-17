@@ -5,7 +5,7 @@ const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
 })
 
-const transcribeAudio = async (params: { filePath: string; prompt: string }): Promise<string> => {
+export const transcribeAudio = async (params: { filePath: string; prompt: string }): Promise<string> => {
     const { filePath, prompt } = params
     console.log('Processing audio file with whisper-1 model...')
     console.time('Audio Transcription')
@@ -18,7 +18,7 @@ const transcribeAudio = async (params: { filePath: string; prompt: string }): Pr
     return transcription.text
 }
 
-const generateSummary = async (params: { googleMeetTranscript: string; accurateTranscript: string; toolsAndTech: string }): Promise<string> => {
+export const generateSummary = async (params: { googleMeetTranscript: string; accurateTranscript: string; toolsAndTech: string }): Promise<string> => {
     const { googleMeetTranscript, accurateTranscript, toolsAndTech } = params
     console.log('Generating summary for the meeting transcripts...')
     console.time('Summary Generation')
@@ -104,5 +104,3 @@ Please ensure clarity, accuracy, and readability in your response.`,
     console.timeEnd('Summary Generation')
     return summary.choices[0].message.content || ''
 }
-
-export { transcribeAudio, generateSummary }
