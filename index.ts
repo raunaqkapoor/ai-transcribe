@@ -14,6 +14,7 @@ const main = async (): Promise<void> => {
     const audioFilepath = `${INPUT_DIRECTORY}/${originalFilename}.webm`
     const textFilepath = `${INPUT_DIRECTORY}/${originalFilename}.txt`
     const compressedAudioFilepath = `${PROCESSING_DIRECTORY}/${sanitizedFilename}-compressed.webm`
+    const transcriptFilePath = `${PROCESSING_DIRECTORY}/${sanitizedFilename}-transcription.txt`
 
     const clientsOrganizations = 'Clients: Staycity, Amano, Dalata, Ostello Bello, McDreams, Bicycle Street, Cranleigh'
 
@@ -45,23 +46,32 @@ const main = async (): Promise<void> => {
     let processedAudioFilepath = audioFilepath
 
     if (fs.existsSync(compressedAudioFilepath)) {
+        console.log('Using existing compressed audio file...')
         processedAudioFilepath = compressedAudioFilepath
     } else {
         const stats = fs.statSync(audioFilepath)
         const fileSizeInMB = stats.size / (1024 * 1024)
 
         if (fileSizeInMB > 3) {
-            compressAudioFile({ inputPath: audioFilepath, outputPath: compressedAudioFilepath })
+            await compressAudioFile({ inputPath: audioFilepath, outputPath: compressedAudioFilepath })
             processedAudioFilepath = compressedAudioFilepath
         }
     }
 
-    const transcriptionText = await transcribeAudio({ filePath: processedAudioFilepath, prompt })
-    writeFileContent({ filePath: `${PROCESSING_DIRECTORY}/${sanitizedFilename}-transcription.txt`, content: transcriptionText })
+
+    let transcriptionText: string
+    if (fs.existsSync(transcriptFilePath)) {
+        console.log('Using existing transcription file...')
+        transcriptionText = readFileContent(transcriptFilePath)
+    } else {
+        transcriptionText = await transcribeAudio({ filePath: processedAudioFilepath, prompt })
+        writeFileContent({ filePath: transcriptFilePath, content: transcriptionText })
+    }
 
     const googleMeetTranscript = readFileContent(textFilepath)
-    const summary = await generateSummary({ googleMeetTranscript, accurateTranscript: transcriptionText, toolsAndTech: domainSpecificTerms })
+    const { summary, deeperInsights } = await generateSummary({ googleMeetTranscript, accurateTranscript: transcriptionText, toolsAndTech: domainSpecificTerms })
     writeFileContent({ filePath: `${OUTPUT_DIRECTORY}/${sanitizedFilename}-summary.md`, content: summary })
+    writeFileContent({ filePath: `${OUTPUT_DIRECTORY}/${sanitizedFilename}-deeper-insights.md`, content: deeperInsights })
 }
 
 main().catch(error => console.error(error))

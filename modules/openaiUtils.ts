@@ -1,5 +1,6 @@
 import fs from 'fs'
 import OpenAI from 'openai'
+import { withConsoleLoader } from './consoleUtils.ts';
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
@@ -7,22 +8,20 @@ const openai = new OpenAI({
 
 export const transcribeAudio = async (params: { filePath: string; prompt: string }): Promise<string> => {
     const { filePath, prompt } = params
-    console.log('Processing audio file with whisper-1 model...')
     console.time('Audio Transcription')
-    const transcription = await openai.audio.transcriptions.create({
+    const transcription = await withConsoleLoader(async () => openai.audio.transcriptions.create({
         file: fs.createReadStream(filePath),
         model: 'whisper-1',
         prompt
-    })
+    }), { message: 'Transcribing audio file with whisper-1 model...' })
     console.timeEnd('Audio Transcription')
     return transcription.text
 }
 
-export const generateSummary = async (params: { googleMeetTranscript: string; accurateTranscript: string; toolsAndTech: string }): Promise<string> => {
+export const generateSummary = async (params: { googleMeetTranscript: string; accurateTranscript: string; toolsAndTech: string }): Promise<{ summary: string; deeperInsights: string }> => {
     const { googleMeetTranscript, accurateTranscript, toolsAndTech } = params
-    console.log('Generating summary for the meeting transcripts...')
     console.time('Summary Generation')
-    const summary = await openai.chat.completions.create({
+    const summary = await withConsoleLoader(async () => openai.chat.completions.create({
         model: 'o3-2025-04-16',
         messages: [
             {
@@ -100,7 +99,43 @@ Please ensure clarity, accuracy, and readability in your response.`,
         ],
         max_completion_tokens: 5000,
         temperature: 1
+    }), {
+        message: 'Generating summary for the meeting transcripts...',
     })
     console.timeEnd('Summary Generation')
-    return summary.choices[0].message.content || ''
+    const summaryText = summary.choices[0]?.message?.content ?? '';
+
+    console.time('Deeper Insights Generation')
+    const deepDive = await withConsoleLoader(async () => openai.chat.completions.create({
+        model: 'o3-2025-04-16',
+        messages: [
+            {
+                role: 'system',
+                content: `You are an expert meeting analyst.
+    Given a structured meeting summary and the original context, you will:
+    - Identify implicit risks, dependencies, and trade-offs
+    - Highlight disagreements or misalignments between participants
+    - Propose a concise set of recommendations and follow-ups for Raunaq
+    Respond in clear markdown format with sections: "Deeper Insights", "Risks & Dependencies", "Alignment & Misalignment", "Recommendations".`,
+            },
+            {
+                role: 'user',
+                content: `Here is the structured summary of the meeting:
+    
+    ${summaryText}
+    
+    Now produce a deeper analysis as described in your instructions.`,
+            },
+        ],
+        // Reasoning models use max_completion_tokens instead of max_tokens
+        max_completion_tokens: 3000,
+        // Optional but useful: how hard o3 should "think"
+        reasoning_effort: 'high', // "low" | "medium" | "high"
+    }), { message: 'Generating deeper insights for the meeting...' })
+
+    console.timeEnd('Deeper Insights Generation')
+
+    const deeperInsights = deepDive.choices[0]?.message?.content ?? '';
+
+    return { summary: summaryText, deeperInsights }
 }
