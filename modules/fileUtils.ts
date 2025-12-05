@@ -18,7 +18,12 @@ export const compressAudioFile = (params: { inputPath: string; outputPath: strin
     console.timeEnd('Audio Compression')
 }
 
-export const readFileContent = (filePath: string): string => fs.readFileSync(filePath, 'utf8')
+export const readFileContent = (filePath: string): string => {
+    if (!fs.existsSync(filePath)) {
+        return '';
+    }
+    return fs.readFileSync(filePath, 'utf8');
+}
 
 export const writeFileContent = (params: { filePath: string; content: string }): void => {
     const { filePath, content } = params

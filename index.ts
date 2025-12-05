@@ -20,7 +20,7 @@ const main = async (): Promise<void> => {
 
     const people = 'People: Jason, Laura, Lina, Gaurav, Monasha, Raunaq, Selwyn, Mike, Ram, Bhaskar, Abhishek'
 
-    const pmsHousekeepingMessagingSystems = 'PMS/Housekeeping/Messaging Systems: Optii, Flexkeeping, Mews (frequently mistaken as muse), Cloudbeds, LikeMagic, Apaleo, Freshwork, Freshdesk, Freshchat'
+    const pmsHousekeepingMessagingSystems = 'PMS/Housekeeping/Messaging Systems: Optii, Flexkeeping, Mews (frequently mistaken as muse/Muse), Cloudbeds, LikeMagic, Bookboost, Apaleo, Freshwork, Freshdesk, Freshchat, Goki'
 
     const technologiesFrameworks = 'Technologies/Frameworks: LiteLLM, Langfuse, JOI validation, NextJS, Claude, Anthropic, Gemini'
 
