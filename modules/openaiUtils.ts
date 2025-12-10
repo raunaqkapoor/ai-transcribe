@@ -1,10 +1,15 @@
 import fs from 'fs'
 import OpenAI from 'openai'
 import { withConsoleLoader } from './consoleUtils.ts';
+import { OUTPUT_DIRECTORY } from './constants.ts';
+import { readFileContent } from './fileUtils.ts';
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
 })
+
+const meetingDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+console.log('Meeting Date:', meetingDate);
 
 export const transcribeAudio = async (params: { filePath: string; prompt: string }): Promise<string> => {
     const { filePath, prompt } = params
@@ -26,7 +31,7 @@ export const generateSummary = async (params: { googleMeetTranscript: string; ac
         messages: [
             {
                 role: 'system',
-                content: `## Meeting Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
+                content: `## Meeting Date: ${meetingDate}
 
 You are provided with two transcripts from the same meeting:
 
@@ -103,7 +108,41 @@ Please ensure clarity, accuracy, and readability in your response.`,
         message: 'Generating summary for the meeting transcripts...',
     })
     console.timeEnd('Summary Generation')
+    console.log(`Summary Generation Usage: ${summary.usage?.total_tokens} tokens`)
     const summaryText = summary.choices[0]?.message?.content ?? '';
+
+    // Get last 12 historical deeper insights
+    const getHistoricalInsights = (): { historicalContent: string; filesCount: number } => {
+        try {
+            const files = fs.readdirSync(OUTPUT_DIRECTORY)
+                .filter(file => file.endsWith('-deeper-insights.md'))
+                .map(file => {
+                    const filePath = `${OUTPUT_DIRECTORY}/${file}`;
+                    // Extract date from filename (format: YYYY_MM_DD-deeper-insights.md)
+                    const dateMatch = file.match(/^(\d{4}_\d{2}_\d{2})-/);
+                    const dateStr = dateMatch ? dateMatch[1] : '0000_00_00';
+                    return { file, dateStr, filePath };
+                })
+                .sort((a, b) => b.dateStr.localeCompare(a.dateStr)) // Sort descending by date
+                .slice(0, 12);
+
+            if (files.length === 0) {
+                return { historicalContent: '', filesCount: 0 };
+            }
+
+            const historicalContent = files.map(({ file, filePath }) => {
+                const content = readFileContent(filePath);
+                return `## ${file}\n${content}`;
+            }).join('\n\n---\n\n');
+
+            return { historicalContent, filesCount: files.length };
+        } catch (error) {
+            console.warn('Error reading historical insights:', error);
+            return { historicalContent: '', filesCount: 0 };
+        }
+    };
+
+    const { historicalContent, filesCount } = getHistoricalInsights();
 
     console.time('Deeper Insights Generation')
     const deepDive = await withConsoleLoader(async () => openai.chat.completions.create({
@@ -116,15 +155,26 @@ Please ensure clarity, accuracy, and readability in your response.`,
     - Identify implicit risks, dependencies, and trade-offs
     - Highlight disagreements or misalignments between participants
     - Propose a concise set of recommendations and follow-ups for Raunaq
-    Respond in clear markdown format with sections: "Deeper Insights", "Risks & Dependencies", "Alignment & Misalignment", "Recommendations".`,
+    - Maintain a list of open items that are carried forward from previous meetings
+    Respond in clear markdown format with sections: "Deeper Insights", "Risks & Dependencies", "Alignment & Misalignment", "Recommendations", "Open Items (Carried Forward)".
+
+    For the "Open Items (Carried Forward)" section:
+    - Review the historical deeper insights provided below
+    - Identify action items, recommendations, or unresolved issues from previous meetings
+    - List items that are still relevant and have not been completed or resolved
+    - Format as a clear list with brief context for each item`,
             },
             {
                 role: 'user',
-                content: `Here is the structured summary of the meeting:
+                content: `Here is the structured summary of the current meeting:
     
     ${summaryText}
     
-    Now produce a deeper analysis as described in your instructions.`,
+    ${filesCount ? `Here are the last ${filesCount} historical deeper insights for context:
+    
+    ${historicalContent}
+    
+    ` : ''}Now produce a deeper analysis as described in your instructions. Include the meeting date as the first line of your response in the format: "## Meeting Date: ${meetingDate}"`,
             },
         ],
         // Reasoning models use max_completion_tokens instead of max_tokens
@@ -134,8 +184,13 @@ Please ensure clarity, accuracy, and readability in your response.`,
     }), { message: 'Generating deeper insights for the meeting...' })
 
     console.timeEnd('Deeper Insights Generation')
+    console.log(`Deeper Insights Generation Usage: ${deepDive.usage?.total_tokens} tokens`)
+    let deeperInsights = deepDive.choices[0]?.message?.content ?? '';
 
-    const deeperInsights = deepDive.choices[0]?.message?.content ?? '';
+    // Ensure date is the first line if not already present
+    if (!deeperInsights.startsWith('## Meeting Date:')) {
+        deeperInsights = `## Meeting Date: ${meetingDate}\n\n${deeperInsights}`;
+    }
 
     return { summary: summaryText, deeperInsights }
 }
