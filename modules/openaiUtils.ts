@@ -23,15 +23,104 @@ export const transcribeAudio = async (params: { filePath: string; prompt: string
     return transcription.text
 }
 
+// Helper function to validate if content is meaningful (not just a date header)
+const isValidContent = (content: string): boolean => {
+    if (!content || content.trim().length === 0) {
+        return false;
+    }
+
+    // Remove the date header if present
+    let contentWithoutDate = content.trim();
+    if (contentWithoutDate.startsWith('## Meeting Date:')) {
+        // Remove the date line and any following whitespace/newlines
+        contentWithoutDate = contentWithoutDate
+            .split('\n')
+            .slice(1)
+            .join('\n')
+            .trim();
+    }
+
+    // Check if there's meaningful content (at least 50 characters after removing date)
+    return contentWithoutDate.length >= 50;
+};
+
+// Helper function to retry an operation up to maxRetries times
+const retryWithValidation = async <T>(
+    operation: () => Promise<T>,
+    extractContent: (result: T) => string,
+    maxRetries: number = 3,
+    operationName: string
+): Promise<T> => {
+    let lastResult: T | null = null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        const result = await operation();
+        lastResult = result;
+        const content = extractContent(result);
+
+        if (isValidContent(content)) {
+            if (attempt > 1) {
+                console.log(`${operationName} succeeded on attempt ${attempt}`);
+            }
+            return result;
+        }
+
+        if (attempt < maxRetries) {
+            console.warn(`${operationName} attempt ${attempt} failed: content is missing or incomplete. Retrying...`);
+        } else {
+            console.error(`${operationName} failed after ${maxRetries} attempts: content is still missing or incomplete.`);
+        }
+    }
+
+    // Return the last attempt even if invalid (to avoid breaking the flow)
+    return lastResult!;
+};
+
 export const generateSummary = async (params: { googleMeetTranscript: string; accurateTranscript: string; toolsAndTech: string }): Promise<{ summary: string; deeperInsights: string }> => {
     const { googleMeetTranscript, accurateTranscript, toolsAndTech } = params
+
+    // Get last 12 historical deeper insights
+    const getHistoricalInsights = (): { historicalContent: string; filesCount: number } => {
+        try {
+            const files = fs.readdirSync(OUTPUT_DIRECTORY)
+                .filter(file => file.endsWith('-deeper-insights.md'))
+                .map(file => {
+                    const filePath = `${OUTPUT_DIRECTORY}/${file}`;
+                    // Extract date from filename (format: YYYY_MM_DD-deeper-insights.md)
+                    const dateMatch = file.match(/^(\d{4}_\d{2}_\d{2})-/);
+                    const dateStr = dateMatch ? dateMatch[1] : '0000_00_00';
+                    return { file, dateStr, filePath };
+                })
+                .sort((a, b) => b.dateStr.localeCompare(a.dateStr)) // Sort descending by date
+                .slice(0, 12);
+
+            if (files.length === 0) {
+                return { historicalContent: '', filesCount: 0 };
+            }
+
+            const historicalContent = files.map(({ file, filePath }) => {
+                const content = readFileContent(filePath);
+                return `## ${file}\n${content}`;
+            }).join('\n\n---\n\n');
+
+            return { historicalContent, filesCount: files.length };
+        } catch (error) {
+            console.warn('Error reading historical insights:', error);
+            return { historicalContent: '', filesCount: 0 };
+        }
+    };
+
+    const { historicalContent, filesCount } = getHistoricalInsights();
+
+    // Generate summary with retry logic
     console.time('Summary Generation')
-    const summary = await withConsoleLoader(async () => openai.chat.completions.create({
-        model: 'o3-2025-04-16',
-        messages: [
-            {
-                role: 'system',
-                content: `## Meeting Date: ${meetingDate}
+    const summary = await retryWithValidation(
+        async () => withConsoleLoader(async () => openai.chat.completions.create({
+            model: 'o3-2025-04-16',
+            messages: [
+                {
+                    role: 'system',
+                    content: `## Meeting Date: ${meetingDate}
 
 You are provided with two transcripts from the same meeting:
 
@@ -94,63 +183,36 @@ Example format:
 ---
 
 Please ensure clarity, accuracy, and readability in your response.`,
-            }, {
-                role: 'user',
-                content: `Transcript 1 (Google Meet Live Captioning):
-                ${googleMeetTranscript}
-                Transcript 2 (Accurate Transcript):
-                ${accurateTranscript}`
-            }
-        ],
-        max_completion_tokens: 5000,
-        temperature: 1
-    }), {
-        message: 'Generating summary for the meeting transcripts...',
-    })
+                }, {
+                    role: 'user',
+                    content: `Transcript 1 (Google Meet Live Captioning):
+                    ${googleMeetTranscript}
+                    Transcript 2 (Accurate Transcript):
+                    ${accurateTranscript}`
+                }
+            ],
+            max_completion_tokens: 5000,
+            temperature: 1
+        }), {
+            message: 'Generating summary for the meeting transcripts...',
+        }),
+        (result) => result.choices[0]?.message?.content ?? '',
+        3,
+        'Summary Generation'
+    );
     console.timeEnd('Summary Generation')
     console.log(`Summary Generation Usage: ${summary.usage?.total_tokens} tokens`)
     const summaryText = summary.choices[0]?.message?.content ?? '';
 
-    // Get last 12 historical deeper insights
-    const getHistoricalInsights = (): { historicalContent: string; filesCount: number } => {
-        try {
-            const files = fs.readdirSync(OUTPUT_DIRECTORY)
-                .filter(file => file.endsWith('-deeper-insights.md'))
-                .map(file => {
-                    const filePath = `${OUTPUT_DIRECTORY}/${file}`;
-                    // Extract date from filename (format: YYYY_MM_DD-deeper-insights.md)
-                    const dateMatch = file.match(/^(\d{4}_\d{2}_\d{2})-/);
-                    const dateStr = dateMatch ? dateMatch[1] : '0000_00_00';
-                    return { file, dateStr, filePath };
-                })
-                .sort((a, b) => b.dateStr.localeCompare(a.dateStr)) // Sort descending by date
-                .slice(0, 12);
-
-            if (files.length === 0) {
-                return { historicalContent: '', filesCount: 0 };
-            }
-
-            const historicalContent = files.map(({ file, filePath }) => {
-                const content = readFileContent(filePath);
-                return `## ${file}\n${content}`;
-            }).join('\n\n---\n\n');
-
-            return { historicalContent, filesCount: files.length };
-        } catch (error) {
-            console.warn('Error reading historical insights:', error);
-            return { historicalContent: '', filesCount: 0 };
-        }
-    };
-
-    const { historicalContent, filesCount } = getHistoricalInsights();
-
+    // Generate deeper insights with retry logic
     console.time('Deeper Insights Generation')
-    const deepDive = await withConsoleLoader(async () => openai.chat.completions.create({
-        model: 'o3-2025-04-16',
-        messages: [
-            {
-                role: 'system',
-                content: `You are an expert meeting analyst.
+    const deepDive = await retryWithValidation(
+        async () => withConsoleLoader(async () => openai.chat.completions.create({
+            model: 'o3-2025-04-16',
+            messages: [
+                {
+                    role: 'system',
+                    content: `You are an expert meeting analyst.
     Given a structured meeting summary and the original context, you will:
     - Identify implicit risks, dependencies, and trade-offs
     - Highlight disagreements or misalignments between participants
@@ -163,10 +225,10 @@ Please ensure clarity, accuracy, and readability in your response.`,
     - Identify action items, recommendations, or unresolved issues from previous meetings
     - List items that are still relevant and have not been completed or resolved
     - Format as a clear list with brief context for each item`,
-            },
-            {
-                role: 'user',
-                content: `Here is the structured summary of the current meeting:
+                },
+                {
+                    role: 'user',
+                    content: `Here is the structured summary of the current meeting:
     
     ${summaryText}
     
@@ -175,13 +237,17 @@ Please ensure clarity, accuracy, and readability in your response.`,
     ${historicalContent}
     
     ` : ''}Now produce a deeper analysis as described in your instructions. Include the meeting date as the first line of your response in the format: "## Meeting Date: ${meetingDate}"`,
-            },
-        ],
-        // Reasoning models use max_completion_tokens instead of max_tokens
-        max_completion_tokens: 3000,
-        // Optional but useful: how hard o3 should "think"
-        reasoning_effort: 'high', // "low" | "medium" | "high"
-    }), { message: 'Generating deeper insights for the meeting...' })
+                },
+            ],
+            // Reasoning models use max_completion_tokens instead of max_tokens
+            max_completion_tokens: 3000,
+            // Optional but useful: how hard o3 should "think"
+            reasoning_effort: 'high', // "low" | "medium" | "high"
+        }), { message: 'Generating deeper insights for the meeting...' }),
+        (result) => result.choices[0]?.message?.content ?? '',
+        3,
+        'Deeper Insights Generation'
+    );
 
     console.timeEnd('Deeper Insights Generation')
     console.log(`Deeper Insights Generation Usage: ${deepDive.usage?.total_tokens} tokens`)
