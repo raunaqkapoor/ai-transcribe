@@ -16,13 +16,13 @@ const main = async (): Promise<void> => {
     const compressedAudioFilepath = `${PROCESSING_DIRECTORY}/${sanitizedFilename}-compressed.webm`
     const transcriptFilePath = `${PROCESSING_DIRECTORY}/${sanitizedFilename}-transcription.txt`
 
-    const clientsOrganizations = 'Clients: Staycity, Amano, Dalata, Ostello Bello, McDreams, Bicycle Street, Cranleigh'
+    const clientsOrganizations = 'Clients: Staycity, Amano, Dalata, Ostello Bello, McDreams, Bicycle Street, Cranleigh, Outsite-New York'
 
     const people = 'People: Jason, Laura, Lina, Gaurav, Monasha, Raunaq, Selwyn, Mike, Ram, Bhaskar, Abhishek'
 
-    const pmsHousekeepingMessagingSystems = 'PMS/Housekeeping/Messaging Systems: Optii, Flexkeeping, Mews (frequently mistaken as muse/Muse), Cloudbeds, LikeMagic, Bookboost, Apaleo, Freshwork, Freshdesk, Freshchat, Goki'
+    const pmsHousekeepingMessagingSystems = 'PMS/Housekeeping/Messaging Systems: Optii, Flexkeeping, Mews (frequently mistaken as muse/Muse), Cloudbeds, LikeMagic, Bookboost, Apaleo, Freshwork, Freshdesk, Freshchat, Goki, Faundit (frequently mistaken as Fondant)'
 
-    const technologiesFrameworks = 'Technologies/Frameworks: LiteLLM, Langfuse, JOI validation, NextJS, Claude, Anthropic, Gemini'
+    const technologiesFrameworks = 'Technologies/Frameworks: LiteLLM, Langfuse, JOI validation, NextJS, Claude, Anthropic, Gemini, Linear'
 
     const platformsServices = 'Platforms/Services: Hookdeck, LiveKit, CTA, Crowdin, Twilio, BetterAuth, D3x, D3x.ai, Platform'
 
