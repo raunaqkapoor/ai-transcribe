@@ -78,6 +78,7 @@ const retryWithValidation = async <T>(
 
 export const generateSummary = async (params: { googleMeetTranscript: string; accurateTranscript: string; toolsAndTech: string }): Promise<{ summary: string; deeperInsights: string }> => {
     const { googleMeetTranscript, accurateTranscript, toolsAndTech } = params
+    const hasAccurateTranscript = accurateTranscript.trim().length > 0
 
     // Get last 12 historical deeper insights
     const getHistoricalInsights = (): { historicalContent: string; filesCount: number } => {
@@ -125,7 +126,9 @@ export const generateSummary = async (params: { googleMeetTranscript: string; ac
 You are provided with two transcripts from the same meeting:
 
 - **Transcript 1 (Google Meet Live Captioning)**: Contains speaker labels but may have inaccuracies. The speaker labels are always correct, but the content may not be. The person marked as You is Raunaq.
-- **Transcript 2 (Accurate Transcript)**: Contains accurate text but lacks speaker labels.
+${hasAccurateTranscript
+                            ? '- **Transcript 2 (Accurate Transcript)**: Contains accurate text but lacks speaker labels.'
+                            : '- **Transcript 2 (Accurate Transcript)**: Not available for this meeting.'}
 
 Please note that certain technical terms, tools, and participant names may have been incorrectly transcribed. Pay special attention to the following correct terms and names: **${toolsAndTech}**.
 
@@ -133,12 +136,16 @@ Please note that certain technical terms, tools, and participant names may have 
 
 1. **Cross-reference** both transcripts:
    - Use **Transcript 1** to identify who said what.
-   - Use **Transcript 2** to verify and correct the accuracy of the content.
+   ${hasAccurateTranscript
+                            ? '- Use **Transcript 2** to verify and correct the accuracy of the content.'
+                            : '- Since Transcript 2 is missing, rely on Transcript 1 and your best judgment for accuracy.'}
 
 2. **Evaluate carefully**:
    - The speaker labels in the first transcript are always correct and should be trusted.
    - But the content in the first transcript is not accurate.
-   - The second transcript is generally accurate but may still contain minor errors.
+   - ${hasAccurateTranscript
+                            ? 'The second transcript is generally accurate but may still contain minor errors.'
+                            : 'There is no second transcript available for accuracy verification.'}
    - Use context, provided correct terms and names, and your judgment to determine the correct information.
 
 3. **Exclude**:
@@ -188,7 +195,7 @@ Please ensure clarity, accuracy, and readability in your response.`,
                     content: `Transcript 1 (Google Meet Live Captioning):
                     ${googleMeetTranscript}
                     Transcript 2 (Accurate Transcript):
-                    ${accurateTranscript}`
+                    ${hasAccurateTranscript ? accurateTranscript : '[Not available]'}`
                 }
             ],
             max_completion_tokens: 5000,

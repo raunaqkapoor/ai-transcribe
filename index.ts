@@ -20,7 +20,7 @@ const main = async (): Promise<void> => {
 
     const people = 'People: Jason, Laura, Lina, Gaurav, Monasha, Raunaq, Selwyn, Mike, Ram, Bhaskar, Abhishek'
 
-    const pmsHousekeepingMessagingSystems = 'PMS/Housekeeping/Messaging Systems: Optii, Flexkeeping, Mews (frequently mistaken as muse/Muse), Cloudbeds, LikeMagic, Bookboost, Apaleo, Freshwork, Freshdesk, Freshchat, Goki, Faundit (frequently mistaken as Fondant)'
+    const pmsHousekeepingMessagingSystems = 'PMS/Housekeeping/Messaging Systems: Optii, Flexkeeping, Mews (frequently mistaken as muse/Muse), Cloudbeds, LikeMagic, Bookboost, Apaleo, Freshwork, Freshdesk, Freshchat, Goki (frequently mistaken as GoKey), Faundit (frequently mistaken as Fondant)'
 
     const technologiesFrameworks = 'Technologies/Frameworks: LiteLLM, Langfuse, JOI validation, NextJS, Claude, Anthropic, Gemini, Linear'
 
@@ -43,12 +43,13 @@ const main = async (): Promise<void> => {
 
     const prompt = `The following list contains domain-specific terms, tools, and names that are crucial for accurate transcription which we are using and might be transcribed wrongly:\n${domainSpecificTerms}`
 
-    let processedAudioFilepath = audioFilepath
+    let processedAudioFilepath: string | null = null
 
     if (fs.existsSync(compressedAudioFilepath)) {
         console.log('Using existing compressed audio file...')
         processedAudioFilepath = compressedAudioFilepath
-    } else {
+    } else if (fs.existsSync(audioFilepath)) {
+        processedAudioFilepath = audioFilepath
         const stats = fs.statSync(audioFilepath)
         const fileSizeInMB = stats.size / (1024 * 1024)
 
@@ -56,6 +57,8 @@ const main = async (): Promise<void> => {
             await compressAudioFile({ inputPath: audioFilepath, outputPath: compressedAudioFilepath })
             processedAudioFilepath = compressedAudioFilepath
         }
+    } else {
+        console.warn('No .webm audio file found. Proceeding without accurate transcript generation.')
     }
 
 
@@ -63,9 +66,11 @@ const main = async (): Promise<void> => {
     if (fs.existsSync(transcriptFilePath)) {
         console.log('Using existing transcription file...')
         transcriptionText = readFileContent(transcriptFilePath)
-    } else {
+    } else if (processedAudioFilepath) {
         transcriptionText = await transcribeAudio({ filePath: processedAudioFilepath, prompt })
         writeFileContent({ filePath: transcriptFilePath, content: transcriptionText })
+    } else {
+        transcriptionText = ''
     }
 
     const googleMeetTranscript = readFileContent(textFilepath)

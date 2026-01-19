@@ -2,12 +2,17 @@ import fs from 'fs'
 import { execSync } from 'child_process'
 
 export const getLatestAudioFile = (directory: string): string => {
-    const inputFiles = fs.readdirSync(directory).filter(file => file.endsWith('.webm'))
+    const allFiles = fs.readdirSync(directory)
+    const webmFiles = allFiles.filter(file => file.endsWith('.webm'))
+    const txtFiles = allFiles.filter(file => file.endsWith('.txt'))
+
+    const inputFiles = webmFiles.length > 0 ? webmFiles : txtFiles
     if (inputFiles.length === 0) {
-        throw new Error('No audio files found in the inputFiles directory.')
+        throw new Error('No .webm or .txt files found in the inputFiles directory.')
     }
+
     inputFiles.sort((a, b) => fs.statSync(`${directory}/${b}`).mtime.getTime() - fs.statSync(`${directory}/${a}`).mtime.getTime())
-    return inputFiles[0].replace('.webm', '')
+    return inputFiles[0].replace(/\.(webm|txt)$/, '')
 }
 
 export const compressAudioFile = (params: { inputPath: string; outputPath: string }): void => {
