@@ -72,9 +72,19 @@ const main = async (): Promise<void> => {
     } else {
         transcriptionText = ''
     }
-
+    let summaryText: string = ''
     const googleMeetTranscript = readFileContent(textFilepath)
-    const { summary, deeperInsights } = await generateSummary({ googleMeetTranscript, accurateTranscript: transcriptionText, toolsAndTech: domainSpecificTerms })
+    // Check if the summary file already exists
+    const summaryFilePath = `${OUTPUT_DIRECTORY}/${sanitizedFilename}-summary.md`
+    if (fs.existsSync(summaryFilePath)) {
+        summaryText = readFileContent(summaryFilePath)
+    }
+    const { summary, deeperInsights } = await generateSummary({
+        summaryText,
+        googleMeetTranscript,
+        accurateTranscript: transcriptionText,
+        toolsAndTech: domainSpecificTerms
+    })
     writeFileContent({ filePath: `${OUTPUT_DIRECTORY}/${sanitizedFilename}-summary.md`, content: summary })
     writeFileContent({ filePath: `${OUTPUT_DIRECTORY}/${sanitizedFilename}-deeper-insights.md`, content: deeperInsights })
 }
