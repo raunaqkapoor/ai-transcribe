@@ -22,9 +22,9 @@
   },
   "homepage": "https://github.com/pratikyoff/ai-transcribe#readme",
   "dependencies": {
-    "openai": "^6.15.0"
+    "openai": "^6.16.0"
   },
   "devDependencies": {
-    "@types/node": "^25.0.3"
+    "@types/node": "^25.0.10"
   }
 }
