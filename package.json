@@ -7,7 +7,9 @@
     "node": "^24.12.0"
   },
   "scripts": {
-    "start": "node --env-file=.env index.ts"
+    "start": "node --env-file=.env index.ts",
+    "standup:prepare": "node --env-file=.env standupPrepare.ts",
+    "standup:post": "npm run start"
   },
   "repository": {
     "type": "git",
@@ -22,6 +24,7 @@
   },
   "homepage": "https://github.com/pratikyoff/ai-transcribe#readme",
   "dependencies": {
+    "@linear/sdk": "^71.0.0",
     "openai": "^6.16.0"
   },
   "devDependencies": {
