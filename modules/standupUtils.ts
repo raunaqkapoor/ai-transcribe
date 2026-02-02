@@ -191,9 +191,22 @@ function priorityLabel(p: number): string {
     return 'Low'
 }
 
+/** Format issue identifier as markdown link when base URL is set, else plain. */
+function toIssueLink(identifier: string, base: string): string {
+    if (!base) return `[${identifier}]`
+    const url = `${base.replace(/\/$/, '')}/issue/${identifier}`
+    return `[${identifier}](${url})`
+}
+
+/** Format issue identifier as bold title (optionally linked). */
+function toIssueTitle(identifier: string, base: string): string {
+    const inner = toIssueLink(identifier, base)
+    return `**${inner}**`
+}
+
 export function generateStandupMarkdown(
     groups: AssigneeGroup[],
-    options: { summary?: string; generatedAt?: Date } = {}
+    options: { summary?: string; generatedAt?: Date; linearIssueUrlBase?: string } = {}
 ): string {
     const dayLabel = (options.generatedAt ?? now()).toLocaleDateString('en-US', {
         weekday: 'long',
@@ -203,6 +216,7 @@ export function generateStandupMarkdown(
     })
     const iso = (options.generatedAt ?? now()).toISOString()
     const summary = options.summary ?? 'Review the sections below and discuss blocked and at-risk items.'
+    const linearBase = options.linearIssueUrlBase?.trim() ?? ''
 
     const section = (issues: CategorizedIssue[], title: string, filter: (i: CategorizedIssue) => boolean) => {
         const list = issues.filter(filter)
@@ -210,7 +224,7 @@ export function generateStandupMarkdown(
         const lines = list.map((issue) => {
             const updated = issue.updatedAt instanceof Date ? issue.updatedAt : new Date(issue.updatedAt)
             const bullets: string[] = [
-                `- **[${issue.identifier}]** ${issue.title} (Priority: ${priorityLabel(issue.priority)})`,
+                `- ${toIssueTitle(issue.identifier, linearBase)} ${issue.title} (Priority: ${priorityLabel(issue.priority)})`,
                 `  - **Status:** ${issue.stateName}`,
                 `  - **Updated:** ${relativeTime(updated)}`,
             ]
@@ -229,8 +243,8 @@ export function generateStandupMarkdown(
         const lines = list.map((issue) => {
             const updated = issue.updatedAt instanceof Date ? issue.updatedAt : new Date(issue.updatedAt)
             const bullets: string[] = [
-                `- **[${issue.identifier}]** ${issue.title}`,
-                `  - **Blocked by:** ${issue.blockedBy.map((id) => `[${id}]`).join(', ')}`,
+                `- ${toIssueTitle(issue.identifier, linearBase)} ${issue.title}`,
+                `  - **Blocked by:** ${issue.blockedBy.map((id) => toIssueLink(id, linearBase)).join(', ')}`,
                 `  - **Status:** ${issue.stateName}`,
             ]
             if (issue.discussionReason) bullets.push(`  - **Why:** ${issue.discussionReason}`)

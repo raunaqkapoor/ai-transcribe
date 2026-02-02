@@ -10,6 +10,18 @@ const getLinearClient = (): LinearClient => {
     return new LinearClient({ apiKey })
 }
 
+/**
+ * Fetch the organization's URL key via viewer → organization and return the base URL for issue links.
+ * Returns e.g. https://linear.app/yourworkspace. Use when LINEAR_ISSUE_URL_BASE env is unset (zero config).
+ */
+export async function getLinearIssueUrlBase(): Promise<string> {
+    const client = getLinearClient()
+    const user = await client.viewer
+    const organization = await user.organization
+    const urlKey = organization.urlKey
+    return `https://linear.app/${urlKey}`
+}
+
 /** Normalized issue for standup (read-only view from Linear). */
 export interface EnrichedIssue {
     id: string

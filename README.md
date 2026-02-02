@@ -28,6 +28,7 @@ AI Transcribe is a Node.js application designed to process audio files, transcri
      ```
      OPENAI_API_KEY=your_openai_api_key
      ```
+   - For **standup prep** (`npm run standup:prepare`): set `LINEAR_API_KEY`. Issue IDs in standup notes are resolved from the Linear API and rendered as clickable links when available.
 
 ## Usage
 
@@ -46,4 +47,4 @@ AI Transcribe is a Node.js application designed to process audio files, transcri
 ## Configuration
 
 - **Node Version**: Ensure you are using Node.js version 24.8.0 or higher.
-- **Environment Variables**: The application requires an OpenAI API key, which should be stored in a `.env` file.
+- **Environment Variables**: The application requires an OpenAI API key, which should be stored in a `.env` file. For standup preparation, `LINEAR_API_KEY` is required; issue identifiers in standup notes are turned into Linear hyperlinks using the workspace URL from the API.

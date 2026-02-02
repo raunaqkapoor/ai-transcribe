@@ -4,6 +4,7 @@ import {
     fetchOpenIssues,
     enrichIssueRelations,
     enrichRecentComments,
+    getLinearIssueUrlBase,
 } from './modules/linearUtils.ts'
 import {
     groupIssuesByAssignee,
@@ -48,9 +49,17 @@ No open issues found for the configured Linear teams.
     const groups = groupIssuesByAssignee(categorized)
     await analyzeDiscussionItems(categorized)
     const summary = await generateStandupSummary(groups)
+    let linearIssueUrlBase: string | undefined
+    try {
+        linearIssueUrlBase = await getLinearIssueUrlBase()
+    } catch {
+        // Graceful fallback: issue numbers rendered as plain text (e.g. **[PRD-123]**) without hyperlinks.
+        linearIssueUrlBase = undefined
+    }
     const markdown = generateStandupMarkdown(groups, {
         summary,
         generatedAt: new Date(),
+        linearIssueUrlBase,
     })
 
     const dateTag = formatDateTag(new Date())
