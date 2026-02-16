@@ -24,10 +24,10 @@
   },
   "homepage": "https://github.com/pratikyoff/ai-transcribe#readme",
   "dependencies": {
-    "@linear/sdk": "^71.0.0",
-    "openai": "^6.16.0"
+    "@linear/sdk": "^75.0.0",
+    "openai": "^6.22.0"
   },
   "devDependencies": {
-    "@types/node": "^25.0.10"
+    "@types/node": "^25.2.3"
   }
 }
